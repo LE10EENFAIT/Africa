@@ -9,6 +9,7 @@ from sklearn.manifold import TSNE
 import pandas as pd
 from os.path import isfile
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 import pickle
 from sklearn.ensemble import ExtraTreesClassifier
@@ -93,3 +94,70 @@ class Preprocessing():
         )
         plt.show()
         plt.close()
+
+    def saveDecisionSurface(self, filename):
+        from sklearn.tree import DecisionTreeClassifier
+        # Parameters
+        n_classes = 2
+        plot_colors = ['g','b']
+        plot_edgecolors = ['r','y']
+        plot_markers = ['s','o']
+        plot_classes = ['parasitized', 'uninfected']
+        plot_step = 0.02
+        features_array = self.dataFrame.columns.values
+        plt.figure(figsize=(15,10))
+        liste = []
+        for i in range(0, len(self.X_train[0])-1):
+            for j in range(i+1, len(self.X_train[0])):
+                temp = [i]
+                temp.append(j)
+                liste.append(temp)
+
+        for pairidx, pair in enumerate(liste):
+            # We only take the two corresponding features
+            X = self.X_train[:,pair] #iris.data[:,pair]
+            y = self.Y_train #iris.target
+            
+
+            # Shuffle
+            idx = np.arange(X.shape[0])
+            np.random.seed(13)
+            np.random.shuffle(idx)
+            X = X[idx]
+            y = y[idx]
+
+            # Standardize
+            mean = X.mean(axis=0)
+            std = X.std(axis=0)
+            X = (X - mean) / std
+            
+            # Train
+            clf = DecisionTreeClassifier().fit(X, y)
+
+            # Plot the decision boundary
+            plt.subplot(2, 3, pairidx + 1)
+
+            x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+            y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+            xx, yy = np.meshgrid(np.arange(x_min, x_max, plot_step),
+                                np.arange(y_min, y_max, plot_step))
+
+            Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+            Z = Z.reshape(xx.shape)
+            cs = plt.contourf(xx, yy, Z, cmap=plt.cm.Paired)
+
+            plt.xlabel(features_array[self.features_idx[pair[0]]])
+            plt.ylabel(features_array[self.features_idx[pair[1]]])
+            plt.axis("tight")
+
+            # Plot the training points
+            for i, color, edge_color, marker, classe in zip(range(n_classes), plot_colors, plot_edgecolors, plot_markers, plot_classes):
+                idx = np.where(y == i)
+                plt.scatter(X[idx, 0], X[idx, 1], c=color, edgecolor=edge_color, marker=marker, label=classe,
+                            cmap=plt.cm.Paired)
+
+            plt.axis("tight")
+
+        plt.suptitle("Decision surface of a decision tree using paired features")
+        plt.legend()
+        plt.savefig(filename)
