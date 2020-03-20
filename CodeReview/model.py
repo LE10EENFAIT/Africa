@@ -1,8 +1,6 @@
-problem_dir = 'Classes/ingestion_program/'
-CRED = '\33[91m'
-CEND = '\33[0m'
+from sys import path
 
-from sys import path; path.append(problem_dir)
+path.append("Classes/ingestion_program/")
 from preprocessing import Preprocessing
 from os.path import isfile
 from sklearn.base import BaseEstimator
@@ -18,105 +16,177 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-class model (BaseEstimator):
-    def __init__(self, classifier=RandomForestClassifier(n_estimators=200, min_samples_split=10, 
-                                min_samples_leaf=2, max_features='sqrt', max_depth=None, bootstrap=True),
-                        name="RandomForestClassifier"):
-        self.num_train_samples=0
-        self.num_feat=1
-        self.num_labels=1
-        self.is_trained=False
-        self.results=[] 
-        self.classifier=classifier
-        self.name=name
-        
+
+def print_red(stri):
+    """
+    Fonction qui permet un affichage coloré en ROUGE.
+    On l'utilise pour différencier nos différents print dans la console.
+    """
+    CRED = "\33[91m"
+    CEND = "\33[0m"
+    print(CRED + stri + CEND)
+
+
+class model(BaseEstimator):
+    """
+    Classe de la partie Modèle.
+    Elle implémente les principales méthodes liées aux classifieurs tels que fit, predict, etc.
+    """
+
+    def __init__(
+        self,
+        classifier=RandomForestClassifier(
+            n_estimators=200,
+            min_samples_split=10,
+            min_samples_leaf=2,
+            max_features="sqrt",
+            max_depth=None,
+            bootstrap=True,
+        ),
+        name="RandomForestClassifier",
+    ):
+        self.num_train_samples = 0
+        self.num_feat = 1
+        self.num_labels = 1
+        self.is_trained = False
+        self.results = []
+        self.classifier = classifier
+        self.name = name
+
     def fit(self, X, y):
+        """
+        Entraine le modèle chargé dans self.classifier sur les données (X, y).
+        """
         self.num_train_samples = X.shape[0]
-        if X.ndim>1: self.num_feat = X.shape[1]
+        if X.ndim > 1:
+            self.num_feat = X.shape[1]
         num_train_samples = y.shape[0]
-        if y.ndim>1: self.num_labels = y.shape[1]
-        if (self.num_train_samples != num_train_samples):
-            print(CRED+"ARRGH: number of samples in X and y do not match!"+CEND)
+        if y.ndim > 1:
+            self.num_labels = y.shape[1]
+        if self.num_train_samples != num_train_samples:
+            print_red("ARRGH: number of samples in X and y do not match!")
         self.classifier.fit(X, np.ravel(y))
-        self.is_trained=True
-        
+        self.is_trained = True
+
         return self
-   
+
     def predict(self, X):
-        if X.ndim>1: num_feat = X.shape[1]
-        if (self.num_feat != num_feat):
-            print(CRED+"ARRGH: number of features in X does not match training data!"+CEND)
-        self.results=self.classifier.predict(X)
-        
-        return self.results
+        """
+        Prédiction des données X avec le modèle self.classifier.
+        Return la liste des labels prédits.
+        """
+        if self.is_trained:
+            if X.ndim > 1:
+                num_feat = X.shape[1]
+            if self.num_feat != num_feat:
+                print_red(
+                    "ARRGH: number of features in X does not match training data!"
+                )
+            self.results = self.classifier.predict(X)
+
+            return self.results
+        else:
+            print_red("The model is not trained yet")
+            return None
 
     def save(self, path="./"):
-        pickle.dump(self, open(path + '_model.pickle', "wb"))
+        """
+        On enregistre le modèle dans un fichier .pickle afin de ne pas devoir le réentrainer à chaque éxecution.
+        """
+        pickle.dump(self, open(path + "_model.pickle", "wb"))
 
     def load(self, path="./"):
-        modelfile = path + '_model.pickle'
+        """
+        Possibilité de charger un modèle (pré-entrainé) dans self.classifier
+        """
+        modelfile = path + "_model.pickle"
         if isfile(modelfile):
-            with open(modelfile, 'rb') as f:
+            with open(modelfile, "rb") as f:
                 self = pickle.load(f)
-            print(CRED+"Model reloaded from: " + modelfile+CEND)
+            print_red("Model reloaded from: " + modelfile)
         return self
 
     def getScore(self, y):
+        """
+        Calcul du score du modèle à partir de self.results et de la fontion roc_auc_score.
+        Return le score sur [0, 1] si le modèle a été entrainé, None sinon.
+        """
         if len(self.results) > 0:
             return roc_auc_score(y, self.results)
         else:
-            print(CRED+"The model hasn't made a prediction yet."+CEND)
+            print_red("The model hasn't made a prediction yet.")
             return None
 
     def saveConfusionMatrix(self, y, filename):
+        """
+        Enregistrement la matrice de confusion dans le dossier "Results/Images/".
+        Return True si la sauvegarde a été faite, False sinon
+        """
         if len(self.results) > 0:
             matrice = confusion_matrix(y, self.results)
-            
-            fig, ax = plt.subplots(nrows=1,ncols=1, figsize=(6, 6))
 
-            sns.heatmap(matrice, annot=True, fmt='g', ax=ax)
-            ax.set_xlabel('Predicted labels')
-            ax.set_ylabel('True labels')
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
+
+            sns.heatmap(matrice, annot=True, fmt="g", ax=ax)
+            ax.set_xlabel("Predicted labels")
+            ax.set_ylabel("True labels")
             ax.set_title(self.name)
-            ax.xaxis.set_ticklabels(['Parasitized', 'Uninfected'])
-            ax.yaxis.set_ticklabels(['Parasitized', 'Uninfected'])
+            ax.xaxis.set_ticklabels(["Parasitized", "Uninfected"])
+            ax.yaxis.set_ticklabels(["Parasitized", "Uninfected"])
             plt.savefig(filename)
             plt.close()
+            return True
         else:
-            print(CRED+"The model hasn't made a prediction yet."+CEND)
-        
+            print_red("The model hasn't made a prediction yet.")
+            return False
+
     def exportResults(self, X_train, Y_train, X_valid, X_test, dir, filename):
+        """
+        Exporte les prédictions calculées sur (X_train, X_valid, X_test) dans un dossier zippé.
+        """
         self.fit(X_train, Y_train)
-        write(dir+'malaria_train.predict', self.predict(X_train))
-        write(dir+'malaria_valid.predict', self.predict(X_valid))
-        write(dir+'malaria_test.predict', self.predict(X_test))
-        zipdir(dir+filename+".zip", dir)
-
-
+        write(dir + "malaria_train.predict", self.predict(X_train))
+        write(dir + "malaria_valid.predict", self.predict(X_valid))
+        write(dir + "malaria_test.predict", self.predict(X_test))
+        zipdir(dir + filename + ".zip", dir)
 
 
 def getBestClassifier(list_classifier, name_classifier, X, Y):
+    """
+    Calcul les scores de chaque classifieur de 'list_classifier' sur différents ensembles de données issus de (X, Y).
+    On renvoie alors le classifieur qui a le meilleur score moyen sur ces jeux. 
+    """
+
+    # tableaux de données
     Xs_train = []
     Xs_test = []
     Ys_train = []
     Ys_test = []
+
+    # on découpe les données de 20 façons différentes
+    # qu'on charge dans nos tableaux
     for i in range(0, 20):
-        X_train_pre, X_test_pre, y_train_pre, y_test_pre = train_test_split(X, 
-                                                            Y, test_size=0.33)
+        X_train_pre, X_test_pre, y_train_pre, y_test_pre = train_test_split(
+            X, Y, test_size=0.33
+        )
         Xs_train.append(X_train_pre)
         Xs_test.append(X_test_pre)
         Ys_train.append(y_train_pre)
         Ys_test.append(y_test_pre)
 
+    # on calcul le score pour chaque classifieur sur chacun des jeux de données
+    # et on en fait la moyenne
     scores = []
     for i in range(0, len(list_classifier)):
         scores.append(0)
-    for i in range (0, len(Xs_train)):
+    for i in range(0, len(Xs_train)):
         for j in range(0, len(list_classifier)):
             m = model(list_classifier[j], name_classifier[j])
             m.fit(Xs_train[i], Ys_train[i])
             m.predict(Xs_test[i])
-            scores[j] += m.getScore(Ys_test[i])/len(Xs_train)
+            scores[j] += m.getScore(Ys_test[i]) / len(Xs_train)
+
+    # on choisit le meilleur classifieur à partir des scores moyens obtenus
     max = -1
     idx = -1
     for i in range(0, len(scores)):
@@ -124,19 +194,25 @@ def getBestClassifier(list_classifier, name_classifier, X, Y):
             max = scores[i]
             idx = i
     print(scores)
-    print(CRED+name_classifier[idx] + " is the best classifier of the list for these data."+CEND)
+    print_red(
+        name_classifier[idx] + " is the best classifier of the list for these data."
+    )
     return list_classifier[idx]
-    
-    
+
+
 def getBestMetaParameters(X, Y):
+    """
+    On cherche les meilleurs méta-paramètre d'une RandomForest avec la fonction RandomizedSearchCV (de sklearn) sur les données (X, Y).
+    Renvoie le modèle entrainé ainsi obtenu.
+    """
     # Number of trees in random forest
-    n_estimators = [int(x) for x in np.linspace(start = 100, stop = 2000, num = 10)]
+    n_estimators = [int(x) for x in np.linspace(start=100, stop=2000, num=10)]
 
     # Number of features to consider at every split
-    max_features = ['sqrt', 'auto', None]
+    max_features = ["sqrt", "auto", None]
 
     # Maximum number of levels in tree
-    max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+    max_depth = [int(x) for x in np.linspace(10, 110, num=11)]
     max_depth.append(None)
 
     # Minimum number of samples required to split a node
@@ -149,54 +225,106 @@ def getBestMetaParameters(X, Y):
     bootstrap = [True, False]
 
     # Create the random grid
-    random_grid = {'n_estimators': n_estimators,
-                'max_features': max_features,
-                'max_depth': max_depth,
-                'min_samples_split': min_samples_split,
-                'min_samples_leaf': min_samples_leaf,
-                'bootstrap': bootstrap}
+    random_grid = {
+        "n_estimators": n_estimators,
+        "max_features": max_features,
+        "max_depth": max_depth,
+        "min_samples_split": min_samples_split,
+        "min_samples_leaf": min_samples_leaf,
+        "bootstrap": bootstrap,
+    }
 
-
-    rf_random = RandomizedSearchCV(estimator=RandomForestClassifier(),
-                                param_distributions=random_grid, 
-                                n_iter=100, 
-                                cv = 3, 
-                                verbose=1, 
-                                random_state=None, 
-                                n_jobs=-1)
+    rf_random = RandomizedSearchCV(
+        estimator=RandomForestClassifier(),
+        param_distributions=random_grid,
+        n_iter=100,
+        cv=3,
+        verbose=1,
+        random_state=None,
+        n_jobs=-1,
+    )
     rf_random.fit(X, Y)
 
-    for key,value in rf_random.best_params_.items():
-        print(key, ':', value)
+    for key, value in rf_random.best_params_.items():
+        print(key, ":", value)
 
     m = model(rf_random.best_estimator_)
     m.fit(X, Y)
     return m
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
+    # chargement des données brutes
     data = Preprocessing()
     data.compute_TSNE2D("Results/Preprocessing/TSNE/tsne_results2D_full.pickle")
     data.save_TSNE2D("Results/Images/TSNE2D_full.png")
 
+    # découpage des données
+    X_train_pre, X_test_pre, Y_train_pre, Y_test_pre = train_test_split(
+        data.X_train, data.Y_train, test_size=0.33
+    )
+
+    # chargement d'un modèle calculé au préalable SANS prepocessing
+    m = model()
+    m.load("Results/Model/best_random_full")
+    m.fit(X_train_pre, Y_train_pre)
+    m.predict(X_test_pre)
+    m.saveConfusionMatrix(
+        Y_test_pre, "Results/Images/confusion_matrix_RandomForest_full.png"
+    )
+    print_red("Score for best_random_full_model is " + str(m.getScore(Y_test_pre)))
+
+    m.exportResults(
+        data.X_train,
+        data.Y_train,
+        data.X_valid,
+        data.X_test,
+        "Results/Scores/Best_Random/",
+        "best_random_full",
+    )
+
     data.featureSelection()
     data.compute_TSNE3D("Results/Preprocessing/TSNE/tsne_results3D.pickle")
     data.show_TSNE3D()
-    data.saveDecisionSurface("Results/Images/DecisionSurface.png")
+    X_train_pre, X_test_pre, Y_train_pre, Y_test_pre = train_test_split(
+        data.X_train, data.Y_train, test_size=0.33
+    )
 
-    X_train_pre, X_test_pre, Y_train_pre, Y_test_pre = train_test_split(data.X_train, data.Y_train, test_size=0.33)
+    # chargement d'un modèle calculé au préalable AVEC prepocessing
     m = model()
     m.load("Results/Model/best_random_selected")
     m.fit(X_train_pre, Y_train_pre)
     m.predict(X_test_pre)
-    m.saveConfusionMatrix(Y_test_pre, "Results/Images/confusion_matrix_RandomForest.png")
-    print(CRED+"Score for best_random_selected_model is "+str(m.getScore(Y_test_pre))+CEND)
-    m.exportResults(data.X_train, data.Y_train, data.X_valid, data.X_test, "Results/Scores/Test_19_03/", "test_19_03")
-    m.save("Results/Model/test_19_03")
+    m.saveConfusionMatrix(
+        Y_test_pre, "Results/Images/confusion_matrix_RandomForest_selected.png"
+    )
+    print_red("Score for best_random_selected_model is " + str(m.getScore(Y_test_pre)))
 
+    m.exportResults(
+        data.X_train,
+        data.Y_train,
+        data.X_valid,
+        data.X_test,
+        "Results/Scores/Best_Random/",
+        "best_random_selected",
+    )
+
+    # on regarde quel est le meilleur classifieur parmi (RandomForest, MLP, KNeighbors) et on affiche son score
     from sklearn.neural_network import MLPClassifier
     from sklearn.naive_bayes import GaussianNB
-    m2 = model(getBestClassifier([RandomForestClassifier(), MLPClassifier(solver='lbfgs'), GaussianNB()], ["RandomForest", "MLP", "KNeighbors"], data.X_train, data.Y_train))
-    m2.fit(X_train_pre, Y_train_pre)
-    m2.predict(X_test_pre)
-    print(CRED+"Score for the best classifier of the list is "+str(m2.getScore(Y_test_pre))+CEND)
+
+    m = model(
+        getBestClassifier(
+            [RandomForestClassifier(), MLPClassifier(solver="lbfgs"), GaussianNB()],
+            ["RandomForest", "MLP", "KNeighbors"],
+            data.X_train,
+            data.Y_train,
+        )
+    )
+    m.fit(X_train_pre, Y_train_pre)
+    m.predict(X_test_pre)
+    print_red(
+        "Score for the best classifier of the list is " + str(m.getScore(Y_test_pre))
+    )
+    m.save("Results/Model/test")
+

@@ -27,6 +27,9 @@ class Preprocessing():
         self.X_train = self.dataFrame.drop(['target'], axis=1)
         self.Y_train = self.dataFrame.target == 'parasitized'
 
+        self.tsne_results2D = []
+        self.tsne_results3D = []
+
     def featureSelection(self):
         clf = ExtraTreesClassifier(n_estimators=50)
         clf = clf.fit(self.X_train, self.Y_train)
