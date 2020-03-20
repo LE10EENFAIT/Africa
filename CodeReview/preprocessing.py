@@ -14,6 +14,8 @@ import seaborn as sns
 import pickle
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel
+from sklearn.tree import DecisionTreeClassifier
+
 
 class Preprocessing():
     def __init__(self):
@@ -96,7 +98,6 @@ class Preprocessing():
         plt.close()
 
     def saveDecisionSurface(self, filename):
-        from sklearn.tree import DecisionTreeClassifier
         # Parameters
         n_classes = 2
         plot_colors = ['g','b']

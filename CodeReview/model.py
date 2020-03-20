@@ -127,6 +127,7 @@ def getBestClassifier(list_classifier, name_classifier, X, Y):
     print(CRED+name_classifier[idx] + " is the best classifier of the list for these data."+CEND)
     return list_classifier[idx]
     
+    
 def getBestMetaParameters(X, Y):
     # Number of trees in random forest
     n_estimators = [int(x) for x in np.linspace(start = 100, stop = 2000, num = 10)]
@@ -181,6 +182,7 @@ if __name__=="__main__":
     data.featureSelection()
     data.compute_TSNE3D("Results/Preprocessing/TSNE/tsne_results3D.pickle")
     data.show_TSNE3D()
+    data.saveDecisionSurface("Results/Images/DecisionSurface.png")
 
     X_train_pre, X_test_pre, Y_train_pre, Y_test_pre = train_test_split(data.X_train, data.Y_train, test_size=0.33)
     m = model()
@@ -188,9 +190,13 @@ if __name__=="__main__":
     m.fit(X_train_pre, Y_train_pre)
     m.predict(X_test_pre)
     m.saveConfusionMatrix(Y_test_pre, "Results/Images/confusion_matrix_RandomForest.png")
-    print(m.getScore(Y_test_pre))
+    print(CRED+"Score for best_random_selected_model is "+str(m.getScore(Y_test_pre))+CEND)
     m.exportResults(data.X_train, data.Y_train, data.X_valid, data.X_test, "Results/Scores/Test_19_03/", "test_19_03")
     m.save("Results/Model/test_19_03")
 
-
-
+    from sklearn.neural_network import MLPClassifier
+    from sklearn.naive_bayes import GaussianNB
+    m2 = model(getBestClassifier([RandomForestClassifier(), MLPClassifier(solver='lbfgs'), GaussianNB()], ["RandomForest", "MLP", "KNeighbors"], data.X_train, data.Y_train))
+    m2.fit(X_train_pre, Y_train_pre)
+    m2.predict(X_test_pre)
+    print(CRED+"Score for the best classifier of the list is "+str(m2.getScore(Y_test_pre))+CEND)
