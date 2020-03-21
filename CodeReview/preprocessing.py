@@ -18,6 +18,13 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 class Preprocessing():
+   
+    # _init_:
+    #      self: Instance of the Preprocessing class 
+    #   
+    #   We initialise a new instance and give it the four attributes
+    #   X_valid, X_test, X_train and Y_train as arrays containing 
+    #   the corresponding data from the malaria dataset.
     def __init__(self):
         D = DataManager(data_name, data_dir, replace_missing=True)
         self.X_valid = D.data['X_valid']
@@ -26,10 +33,15 @@ class Preprocessing():
         self.dataFrame = read_as_df(data_dir  + '/' + data_name)
         self.X_train = self.dataFrame.drop(['target'], axis=1)
         self.Y_train = self.dataFrame.target == 'parasitized'
-
-        self.tsne_results2D = []
-        self.tsne_results3D = []
-
+    
+    # featureSelection:
+    #      self: Instance of the Preprocessing class 
+    #
+    #   By going through a randomForest of 50 trees,
+    #   we estimate which features have the most importance
+    #   in the calculation of the score and we remove from
+    #   the arrays the columns of the features that have the least
+    #   influence on the calculation of the score.
     def featureSelection(self):
         clf = ExtraTreesClassifier(n_estimators=50)
         clf = clf.fit(self.X_train, self.Y_train)
@@ -39,6 +51,17 @@ class Preprocessing():
         self.X_valid = feature_selection.transform(self.X_valid)
         self.features_idx = feature_selection.get_support(indices=True)
             
+    # compute_TSNE2D:
+    #       self: Instance of the Preprocessing class 
+    #       filename: String containing the name of a pickle
+    #       reload: boolean to tell the function to load or not an existing pickle
+    #
+    #   Attributes a list hue and an array tsne_results2D to the instance of Preprocessing.
+    #   Fills hue with lists containing the color of each data depending on its label.
+    #   If there is no pickle or if reaload=True, trains a model to give 3D coordinates
+    #   to each of our data and put them in the tsne_results3D array before dumping it into
+    #   a new pickle named as filename and returning it.
+    #   Else, reads the array from the pickle named as filename and returns it.    
     def compute_TSNE2D(self, filename, reload=False):
         self.hue = []
         for i in self.Y_train:
@@ -57,7 +80,18 @@ class Preprocessing():
                 pickle.dump(self.tsne_results2D, fp)
 
         return self.tsne_results2D
-
+    
+    # compute_TSNE3D:
+    #       self: Instance of the Preprocessing class 
+    #       filename: String containing the name of a pickle
+    #       reload: boolean to tell the function to load or not an existing pickle
+    #
+    #   Attributes a list hue3D and an array tsne_results3D to the instance of Preprocessing.
+    #   Fills hue3D with lists containing the color of each data depending on its label.
+    #   If there is no pickle or if reaload=True, trains a model to give 3D coordinates
+    #   to each of our data and put them in the tsne_results3D array before dumping it into
+    #   a new pickle named as filename and returning it.
+    #   Else, reads the array from the pickle named as filename and returns it.
     def compute_TSNE3D(self, filename, reload=False):
         self.hue3D = []
         for i in self.Y_train:
@@ -78,6 +112,14 @@ class Preprocessing():
 
         return self.tsne_results3D
     
+    # save_TSNE2D:
+    #       self: Instance of the Preprocessing class 
+    #       filename: String containing the name of a file
+    #   
+    #   Using the tsne_results2D(coordinates) and the hue(colors) attributes 
+    #   of the instance, draws a 2D graph of the T-SNE of the dataset, calls it
+    #   "Two dimensional T-SNE algorithm on the Africa group's data" and saves 
+    #   it into a file named as filename.
     def save_TSNE2D(self, filename):
         ax = plt.figure(figsize=(13,10))
         ax.suptitle("Two dimensional T-SNE algorithm on the Africa group's data")
@@ -85,7 +127,14 @@ class Preprocessing():
                         alpha=0.5)
         plt.savefig(filename)
         plt.close()
-
+        
+    # show_TSNE3D:
+    #       self: Instance of the Preprocessing class
+    #   
+    #   Using the tsne_results3D(coordinates) and the hue3D(colors) attributes 
+    #   of the instance, draws a 3D graph of the T-SNE of the dataset, calls it
+    #   "Three dimensional T-SNE algorithm on the Africa group's data" and
+    #   displays it.
     def show_TSNE3D(self):
         from mpl_toolkits.mplot3d import axes3d
         ax = plt.figure(figsize=(13,10)).gca(projection='3d')
@@ -99,6 +148,12 @@ class Preprocessing():
         )
         plt.show()
         plt.close()
+          
+
+     # saveDecisionSurface:
+     # Plot and save the decision surface of a decision tree trained on pairs of features 
+     #  self: Instance of the Preprocessing class  
+     #  filename: String containing the name of a file 
 
     def saveDecisionSurface(self, filename):
         # Parameters
@@ -119,8 +174,8 @@ class Preprocessing():
 
         for pairidx, pair in enumerate(liste):
             # We only take the two corresponding features
-            X = self.X_train[:,pair] #iris.data[:,pair]
-            y = self.Y_train #iris.target
+            X = self.X_train[:,pair] 
+            y = self.Y_train
             
 
             # Shuffle
@@ -165,3 +220,4 @@ class Preprocessing():
         plt.suptitle("Decision surface of a decision tree using paired features")
         plt.legend()
         plt.savefig(filename)
+        plt.close()

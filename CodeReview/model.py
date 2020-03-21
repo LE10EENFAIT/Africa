@@ -254,6 +254,7 @@ def getBestMetaParameters(X, Y):
 
 
 if __name__ == "__main__":
+
     # chargement des données brutes
     data = Preprocessing()
     data.compute_TSNE2D("Results/Preprocessing/TSNE/tsne_results2D_full.pickle")
@@ -284,6 +285,7 @@ if __name__ == "__main__":
     )
 
     data.featureSelection()
+    data.saveDecisionSurface("Results/Images/DecisionSurface.png")
     data.compute_TSNE3D("Results/Preprocessing/TSNE/tsne_results3D.pickle")
     data.show_TSNE3D()
     X_train_pre, X_test_pre, Y_train_pre, Y_test_pre = train_test_split(
@@ -327,4 +329,3 @@ if __name__ == "__main__":
         "Score for the best classifier of the list is " + str(m.getScore(Y_test_pre))
     )
     m.save("Results/Model/test")
-
