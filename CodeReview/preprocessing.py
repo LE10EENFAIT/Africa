@@ -8,6 +8,7 @@ import pickle
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import IsolationForest
 
 
 class Preprocessing():
@@ -40,6 +41,74 @@ class Preprocessing():
     def fit_transform(self, X):
         feature_selection = SelectFromModel(self.clf, prefit=True)
         return feature_selection.transform(X)
+    
+    # outliers_filtering:
+    #      self: Instance of the Preprocessing class
+    #      X_train: Array containing the training data
+    #      Y_train: Array containing the training label
+    #   
+    #   We analyse the training data and remove most outliers from it
+    #   thanks to the IsolationForest model that let us detect them
+    def outliers_filtering(self, X_train, Y_train):
+        rows, cols = X_train.shape
+        nb_0 = np.sum(Y_train[:] == Y_train[0])
+        nb_1 = np.sum(Y_train[:] != Y_train[0])
+        
+        class_0 = np.zeros((nb_0, cols))
+        idx_0 = 0
+        class_1 = np.zeros((nb_1, cols))
+        idx_1 = 0
+        for i in range(rows):
+            if(Y_train[i] == Y_train[0]):
+                for j in range(cols):
+                    class_0[idx_0][j] = X_train[i][j]
+                idx_0 = idx_0+1
+            if(Y_train[i] != Y_train[0]):
+                for j in range(cols):
+                    class_1[idx_1][j] = X_train[i][j]
+                idx_1 = idx_1+1
+        
+        clf_0 = IsolationForest(n_estimators=10, warm_start=True)
+        C0 = clf_0.fit_predict(class_0, y=None)
+        nb_inliers = 0
+        for i in range(nb_0):
+            if(C0[i] == 1):
+                nb_inliers = nb_inliers+1
+        nb_0 = nb_inliers
+        clf_1 = IsolationForest(n_estimators=10, warm_start=True)
+        C1 = clf_1.fit_predict(class_1,y=None)
+        for i in range(nb_1):
+            if(C1[i] == 1):
+                nb_inliers = nb_inliers+1
+        nb_1 = nb_inliers-nb_0
+        
+        # After the Random forests have detected all the inliers, 
+        # we put them in a new array to create a new dataset without outliers.
+        X = np.zeros((nb_inliers, cols+1))
+        idx = 0
+        for i in range(C0.size):
+            if(C0[i] == 1):
+                for j in range(cols):
+                    X[idx][j] = class_0[i][j]
+                idx = idx+1
+        for i in range(C1.size):
+            if(C1[i] == 1):
+                for j in range(cols):
+                    X[idx][j] = class_1[i][j]
+                X[idx][cols] = 1
+                idx = idx+1
+                
+        # Finally we shuffle the lines of the dataset
+        np.random.shuffle(X)
+        X_train = np.zeros((nb_inliers, cols))
+        for i in range(nb_inliers):
+            for j in range(cols):
+                X_train[i][j] = X[i][j]
+        Y_train = np.zeros(nb_inliers)
+        for i in range(nb_inliers):
+            Y_train[i] = X[i][cols]
+        self.fit(X_train, Y_train)
+        return (X_train,Y_train)
 
             
     # compute_TSNE2D:
@@ -119,6 +188,7 @@ class Preprocessing():
         plt.savefig(filename)
         plt.close()
         print("T-SNE2D saved in " + filename)
+
         
     # show_TSNE3D:
     #       self: Instance of the Preprocessing class
@@ -211,3 +281,4 @@ class Preprocessing():
         plt.savefig(filename)
         plt.close()
         print("Surface decisionTree saved in " + filename)
+

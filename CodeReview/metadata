@@ -1,1 +1,1 @@
-description: Provides prediction model to be executed by the ingestion program
+description: implémentation d'une classe model contenant les méthodes fit et predict ainsi que d'autres méthodes utile notamment pour de la visualisation ou des choix des classifiers. Les données entrées dans les méthodes fit et predcit sont "preprocessées" par les méthodes de la classe Preprocessing

@@ -61,11 +61,14 @@ class model(BaseEstimator):
             with open(modelfile, "rb") as f:
                 self = pickle.load(f)
 
-    def fit(self, X, y):
+    def fit(self, X, y, outliers=False):
         """
         Entraine le modèle chargé dans self.classifier sur les données (X, y).
         """
-        self.preprocessor.fit(X, y)
+        if outliers:
+            X, y = self.preprocessor.outliers_filtering(X, y)
+        else:
+            self.preprocessor.fit(X, y)
         X = self.preprocessor.fit_transform(X)
         self.num_train_samples = X.shape[0]
         if X.ndim > 1:
@@ -279,7 +282,7 @@ if __name__ == "__main__":
     )
 
 
-    # Chargement d'un modèle calculé au préalable AVEC prepocessing
+    # Chargement d'un modèle calculé au préalable AVEC preprocessing
     m = model()
     m.fit(X_train_pre, Y_train_pre)
     m.predict(X_test_pre)
