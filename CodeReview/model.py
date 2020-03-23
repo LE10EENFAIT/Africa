@@ -11,6 +11,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import train_test_split
 from data_io import write
 from data_io import zipdir
+from data_manager import DataManager
 import seaborn as sns
 import pickle
 import numpy as np
@@ -44,6 +45,7 @@ class model(BaseEstimator):
             bootstrap=True,
         ),
         name="RandomForestClassifier",
+        load="Results/Model/best_random_selected"
     ):
         self.num_train_samples = 0
         self.num_feat = 1
@@ -52,11 +54,19 @@ class model(BaseEstimator):
         self.results = []
         self.classifier = classifier
         self.name = name
+        self.preprocessor = Preprocessing()
+        if load != "":
+            modelfile = load + "_model.pickle"
+        if isfile(modelfile):
+            with open(modelfile, "rb") as f:
+                self = pickle.load(f)
 
     def fit(self, X, y):
         """
         Entraine le modèle chargé dans self.classifier sur les données (X, y).
         """
+        self.preprocessor.fit(X, y)
+        X = self.preprocessor.fit_transform(X)
         self.num_train_samples = X.shape[0]
         if X.ndim > 1:
             self.num_feat = X.shape[1]
@@ -75,6 +85,7 @@ class model(BaseEstimator):
         Prédiction des données X avec le modèle self.classifier.
         Return la liste des labels prédits.
         """
+        X = self.preprocessor.fit_transform(X)
         if self.is_trained:
             if X.ndim > 1:
                 num_feat = X.shape[1]
@@ -135,6 +146,7 @@ class model(BaseEstimator):
             ax.yaxis.set_ticklabels(["Parasitized", "Uninfected"])
             plt.savefig(filename)
             plt.close()
+            print("Confusion matrix saved in : " + filename)
             return True
         else:
             print_red("The model hasn't made a prediction yet.")
@@ -149,7 +161,6 @@ class model(BaseEstimator):
         write(dir + "malaria_valid.predict", self.predict(X_valid))
         write(dir + "malaria_test.predict", self.predict(X_test))
         zipdir(dir + filename + ".zip", dir)
-
 
 def getBestClassifier(list_classifier, name_classifier, X, Y):
     """
@@ -193,7 +204,6 @@ def getBestClassifier(list_classifier, name_classifier, X, Y):
         if scores[i] > max:
             max = scores[i]
             idx = i
-    print(scores)
     print_red(
         name_classifier[idx] + " is the best classifier of the list for these data."
     )
@@ -255,46 +265,22 @@ def getBestMetaParameters(X, Y):
 
 if __name__ == "__main__":
 
-    # chargement des données brutes
+    D = DataManager("malaria", "malaria_data", replace_missing=True)
+
+    # Chargement des données brutes
     data = Preprocessing()
-    data.compute_TSNE2D("Results/Preprocessing/TSNE/tsne_results2D_full.pickle")
-    data.save_TSNE2D("Results/Images/TSNE2D_full.png")
+    data.X_train = D.data['X_train']
+    data.Y_train = D.data['Y_train']
+    data.X_valid = D.data['X_valid']
+    data.X_test = D.data['X_test']
 
-    # découpage des données
     X_train_pre, X_test_pre, Y_train_pre, Y_test_pre = train_test_split(
         data.X_train, data.Y_train, test_size=0.33
     )
 
-    # chargement d'un modèle calculé au préalable SANS prepocessing
+
+    # Chargement d'un modèle calculé au préalable AVEC prepocessing
     m = model()
-    m.load("Results/Model/best_random_full")
-    m.fit(X_train_pre, Y_train_pre)
-    m.predict(X_test_pre)
-    m.saveConfusionMatrix(
-        Y_test_pre, "Results/Images/confusion_matrix_RandomForest_full.png"
-    )
-    print_red("Score for best_random_full_model is " + str(m.getScore(Y_test_pre)))
-
-    m.exportResults(
-        data.X_train,
-        data.Y_train,
-        data.X_valid,
-        data.X_test,
-        "Results/Scores/Best_Random/",
-        "best_random_full",
-    )
-
-    data.featureSelection()
-    data.saveDecisionSurface("Results/Images/DecisionSurface.png")
-    data.compute_TSNE3D("Results/Preprocessing/TSNE/tsne_results3D.pickle")
-    data.show_TSNE3D()
-    X_train_pre, X_test_pre, Y_train_pre, Y_test_pre = train_test_split(
-        data.X_train, data.Y_train, test_size=0.33
-    )
-
-    # chargement d'un modèle calculé au préalable AVEC prepocessing
-    m = model()
-    m.load("Results/Model/best_random_selected")
     m.fit(X_train_pre, Y_train_pre)
     m.predict(X_test_pre)
     m.saveConfusionMatrix(
@@ -311,7 +297,17 @@ if __name__ == "__main__":
         "best_random_selected",
     )
 
-    # on regarde quel est le meilleur classifieur parmi (RandomForest, MLP, KNeighbors) et on affiche son score
+    data.fit(data.X_train, data.Y_train)
+    data.X_train = data.fit_transform(data.X_train)
+    print(data.X_train.shape)
+    data.compute_TSNE2D("Results/Preprocessing/TSNE/tsne_results2D.pickle")
+    data.save_TSNE2D("Results/Images/TSNE2D.png")
+
+    data.saveDecisionSurface("Results/Images/DecisionSurface.png")
+    data.compute_TSNE3D("Results/Preprocessing/TSNE/tsne_results3D.pickle")
+    data.show_TSNE3D()
+
+    # On regarde quel est le meilleur classifieur parmi (RandomForest, MLP, KNeighbors) et on affiche son score
     from sklearn.neural_network import MLPClassifier
     from sklearn.naive_bayes import GaussianNB
 

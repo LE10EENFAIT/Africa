@@ -1,10 +1,3 @@
-problem_dir = 'Classes/ingestion_program/'
-data_dir = 'malaria_data'
-data_name = 'malaria'
-
-from sys import path; path.append(problem_dir)
-from data_manager import DataManager
-from data_io import read_as_df
 from sklearn.manifold import TSNE
 import pandas as pd
 from os.path import isfile
@@ -26,15 +19,12 @@ class Preprocessing():
     #   X_valid, X_test, X_train and Y_train as arrays containing 
     #   the corresponding data from the malaria dataset.
     def __init__(self):
-        D = DataManager(data_name, data_dir, replace_missing=True)
-        self.X_valid = D.data['X_valid']
-        self.X_test = D.data['X_test']
-
-        self.dataFrame = read_as_df(data_dir  + '/' + data_name)
-        self.X_train = self.dataFrame.drop(['target'], axis=1)
-        self.Y_train = self.dataFrame.target == 'parasitized'
+        self.X_train = []
+        self.Y_train = []
+        self.X_valid = []
+        self.X_test = []
     
-    # featureSelection:
+    # fit & fit_transform:
     #      self: Instance of the Preprocessing class 
     #
     #   By going through a randomForest of 50 trees,
@@ -42,14 +32,15 @@ class Preprocessing():
     #   in the calculation of the score and we remove from
     #   the arrays the columns of the features that have the least
     #   influence on the calculation of the score.
-    def featureSelection(self):
-        clf = ExtraTreesClassifier(n_estimators=50)
-        clf = clf.fit(self.X_train, self.Y_train)
-        feature_selection = SelectFromModel(clf, prefit=True)
-        self.X_train = feature_selection.transform(self.X_train)
-        self.X_test = feature_selection.transform(self.X_test)
-        self.X_valid = feature_selection.transform(self.X_valid)
-        self.features_idx = feature_selection.get_support(indices=True)
+    
+    def fit(self, X_train, Y_train):
+        self.clf = ExtraTreesClassifier(n_estimators=50)
+        self.clf = self.clf.fit(X_train, Y_train)
+
+    def fit_transform(self, X):
+        feature_selection = SelectFromModel(self.clf, prefit=True)
+        return feature_selection.transform(X)
+
             
     # compute_TSNE2D:
     #       self: Instance of the Preprocessing class 
@@ -127,6 +118,7 @@ class Preprocessing():
                         alpha=0.5)
         plt.savefig(filename)
         plt.close()
+        print("T-SNE2D saved in " + filename)
         
     # show_TSNE3D:
     #       self: Instance of the Preprocessing class
@@ -163,7 +155,6 @@ class Preprocessing():
         plot_markers = ['s','o']
         plot_classes = ['parasitized', 'uninfected']
         plot_step = 0.02
-        features_array = self.dataFrame.columns.values
         plt.figure(figsize=(15,10))
         liste = []
         for i in range(0, len(self.X_train[0])-1):
@@ -205,8 +196,6 @@ class Preprocessing():
             Z = Z.reshape(xx.shape)
             cs = plt.contourf(xx, yy, Z, cmap=plt.cm.Paired)
 
-            plt.xlabel(features_array[self.features_idx[pair[0]]])
-            plt.ylabel(features_array[self.features_idx[pair[1]]])
             plt.axis("tight")
 
             # Plot the training points
@@ -221,3 +210,4 @@ class Preprocessing():
         plt.legend()
         plt.savefig(filename)
         plt.close()
+        print("Surface decisionTree saved in " + filename)
