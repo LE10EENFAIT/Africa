@@ -28,7 +28,7 @@ def print_red(stri):
     print(CRED + stri + CEND)
 
 
-class model(BaseEstimator):
+class model:
     """
     Classe de la partie Modèle.
     Elle implémente les principales méthodes liées aux classifieurs tels que fit, predict, etc.
@@ -69,7 +69,7 @@ class model(BaseEstimator):
             X, y = self.preprocessor.outliers_filtering(X, y)
         else:
             self.preprocessor.fit(X, y)
-        X = self.preprocessor.fit_transform(X)
+        #X = self.preprocessor.fit_transform(X)
         self.num_train_samples = X.shape[0]
         if X.ndim > 1:
             self.num_feat = X.shape[1]
@@ -88,7 +88,7 @@ class model(BaseEstimator):
         Prédiction des données X avec le modèle self.classifier.
         Return la liste des labels prédits.
         """
-        X = self.preprocessor.fit_transform(X)
+        #X = self.preprocessor.fit_transform(X)
         if self.is_trained:
             if X.ndim > 1:
                 num_feat = X.shape[1]
@@ -314,7 +314,6 @@ if __name__ == "__main__":
 
     data.fit(data.X_train, data.Y_train)
     data.X_train = data.fit_transform(data.X_train)
-    print(data.X_train.shape)
     data.compute_TSNE2D("Results/Preprocessing/TSNE/tsne_results2D.pickle")
     data.save_TSNE2D("Results/Images/TSNE2D.png")
 
