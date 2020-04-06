@@ -268,8 +268,10 @@ def getBestMetaParameters(X, Y):
 
 if __name__ == "__main__":
 
-    D = DataManager("malaria", "malaria_data", replace_missing=True)
+    #Batterie de tests
 
+    D = DataManager("malaria", "malaria_data", replace_missing=True)
+    
     # Chargement des données brutes
     data = Preprocessing()
     data.X_train = D.data['X_train']
