@@ -278,6 +278,16 @@ if __name__ == "__main__":
     data.Y_train = D.data['Y_train']
     data.X_valid = D.data['X_valid']
     data.X_test = D.data['X_test']
+    
+    #On test si nos labels sont bien seulement parasitized (1) et uninfected (0)
+    from sklearn.utils.multiclass import unique_labels
+    import collections
+    import sys
+    if collections.Counter(unique_labels(data.Y_train)) != collections.Counter([0,1]):
+        print("There is an error in labels")
+        sys.exit()
+
+
 
     X_train_pre, X_test_pre, Y_train_pre, Y_test_pre = train_test_split(
         data.X_train, data.Y_train, test_size=0.33
@@ -330,3 +340,4 @@ if __name__ == "__main__":
         "Score for the best classifier of the list is " + str(m.getScore(Y_test_pre))
     )
     m.save("Results/Model/test")
+    

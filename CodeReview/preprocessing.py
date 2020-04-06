@@ -10,6 +10,8 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import IsolationForest
 
+#Les tests sont dans le main du fichier model.py
+
 
 class Preprocessing():
    
