@@ -54,6 +54,9 @@ class model:
 
     def __init__(
         self,
+        """
+        Le modèle chargé est très simple, mais c'est celui avec lequel nous avons obtenu nos meilleurs scores
+        """
         classifier=RandomForestClassifier(
             n_estimators=600
         ),
