@@ -51,12 +51,12 @@ class model:
     Classe de la partie Modèle.
     Elle implémente les principales méthodes liées aux classifieurs tels que fit, predict, predict_proba, etc.
     """
-
+    
+    """
+    Le modèle chargé est très simple, mais c'est celui avec lequel nous avons obtenu nos meilleurs scores
+    """
     def __init__(
         self,
-        """
-        Le modèle chargé est très simple, mais c'est celui avec lequel nous avons obtenu nos meilleurs scores
-        """
         classifier=RandomForestClassifier(
             n_estimators=600
         ),
