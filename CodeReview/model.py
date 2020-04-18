@@ -55,11 +55,7 @@ class model:
     def __init__(
         self,
         classifier=RandomForestClassifier(
-            n_estimators=400,
-            min_samples_split=10,
-            min_samples_leaf=2,
-            max_features=None,
-            max_depth=None,
+            n_estimators=600
         ),
         name="RandomForestClassifier",
         load=""
