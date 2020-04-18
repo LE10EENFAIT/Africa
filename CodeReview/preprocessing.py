@@ -1,3 +1,17 @@
+'''
+Challenge MEDICHAL : Team AFRICA
+
+Serre Gaëtan
+Patault Paul
+Estevan Benjamin
+Ferreira Jules
+Ndao Ndiémé
+Iskounen Feriel
+
+Dernier changement : 18/04/2020
+
+'''
+
 from sklearn.manifold import TSNE
 import pandas as pd
 from os.path import isfile
