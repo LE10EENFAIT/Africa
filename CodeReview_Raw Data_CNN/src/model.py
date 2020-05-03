@@ -24,57 +24,35 @@ from sklearn.metrics import roc_curve, auc
 
 import keras
 from keras.models import load_model
-from keras.utils import to_categorical
-from keras.models import Sequential
-from keras.layers import Dense, Convolution2D, Flatten, MaxPooling2D, BatchNormalization, Dropout, AveragePooling2D
+from keras.layers import Dense, Dropout, GlobalAveragePooling2D
+from keras.applications.resnet_v2 import ResNet50V2
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 class model:
     """
     Classe de la partie Modèle.
     Elle implémente les principales méthodes liées aux classifieurs tels que fit, predict_proba, etc.
-    Deux CNN sont disponibles
+    On utilise le réseau neuronal résiduel ResNet50 entraîné sur la base de données ImageNet
     """
 
     
-    def __init__(self, size=50, type_c=1):
+    def __init__(self, size=50):
         self.size = size
         self.is_trained = False
         self.history = None
         self.results = []
-        
-        if type_c == 1:
-            self.classifier = Sequential()
-            self.classifier.add(Convolution2D(32, (3, 3), input_shape = (self.size, self.size, 1), activation = 'relu'))
-            self.classifier.add(Convolution2D(64, (3, 3), activation='relu'))
-            self.classifier.add(MaxPooling2D(pool_size=(2, 2)))
-            self.classifier.add(Dropout(0.25))
-            self.classifier.add(Flatten())
-            self.classifier.add(Dense(units=128, activation='relu'))
-            self.classifier.add(Dropout(0.5))
-            self.classifier.add(Dense(activation = 'sigmoid', units=1))
-            self.classifier.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
-            
-        else:
-            self.classifier = Sequential()
-            self.classifier.add(Convolution2D(32, (3, 3), input_shape = (self.size, self.size, 1), activation = 'relu'))
-            self.classifier.add(MaxPooling2D(pool_size = (2, 2)))
-            self.classifier.add(BatchNormalization())
-            self.classifier.add(Dropout(0.2))
-            self.classifier.add(Convolution2D(32, (3, 3), activation = 'relu'))
-            self.classifier.add(MaxPooling2D(pool_size = (2, 2)))
-            self.classifier.add(BatchNormalization())
-            self.classifier.add(Dropout(0.2))
-            self.classifier.add(Flatten())
-            self.classifier.add(Dense(activation = 'relu', units=512))
-            self.classifier.add(BatchNormalization(axis = -1))
-            self.classifier.add(Dropout(0.2))
-            self.classifier.add(Dense(activation = 'relu', units=256))
-            self.classifier.add(BatchNormalization(axis = -1))
-            self.classifier.add(Dropout(0.2))
-            self.classifier.add(Dense(activation = 'sigmoid', units=1))
-            self.classifier.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
+        base_model = ResNet50V2(include_top=False, weights='imagenet', input_tensor=None, input_shape=(self.size,self.size,3), pooling=None, classes=2)
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        x = Dropout(0.25)(x)
+        predictions = Dense(activation = 'sigmoid', units=1)(x)
+
+        self.classifier = keras.Model(inputs = base_model.input, outputs = predictions)
+        self.classifier.compile(loss=keras.losses.binary_crossentropy,
+              optimizer=keras.optimizers.Adadelta(),
+              metrics=['accuracy'])
     
     def summary(self):
         """
@@ -124,7 +102,7 @@ class model:
         """
         Entraine le modèle chargé dans self.classifier sur les données (X, y).
         """
-        X = X.reshape(len(X), self.size, self.size, 1)
+        X = np.stack((X.reshape(len(X),self.size,self.size),)*3, axis=-1)
         self.history = self.classifier.fit(X, y, epochs=epochs)
         self.is_trained = True
 
@@ -133,7 +111,7 @@ class model:
         Prédiction des données X avec le modèle self.classifier.
         Return la liste des labels prédits.
         """
-        X = X.reshape(len(X), self.size, self.size, 1)
+        X = np.stack((X.reshape(len(X),self.size,self.size),)*3, axis=-1)
         if self.is_trained:
             self.results = self.classifier.predict(X)
             return self.results
@@ -220,8 +198,9 @@ if __name__ == "__main__":
 
     #Chargement d'un modèle entraîné au préalable sur 50 époques avec une NVidia GTX 1080. Prédiction, affichage du score puis exportation des résultats vers un format pour codalab
     m = model()
-    m.load_model('Models/model1_50_epochs.h5')
+    m.load_model('Models/ResNet_100_epochs_malaria.h5')
     m.summary()
     print(m.getScore(X_test_pre, y_test_pre))
     m.save_roc_curve(y_test_pre, 'Images/roc_curve_100_epochs.png')
-    m.exportResults(X_train, X_valid, X_test, "Scores/", "CNN_50_epochs")
+    m.exportResults(X_train, X_valid, X_test, "Scores/", "CNN_100_epochs")
+    
